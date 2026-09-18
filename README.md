@@ -1,4 +1,4 @@
-# Apex Trust Commercial Bank — Fraud Detection & RPA Intake Portal
+# Dummy Bank Portal — Fraud Detection & RPA Intake System
 
 An enterprise-grade, high-performance **Bank Fraud Case Management & Investigation System** designed to bridge automated Robotic Process Automation (**AutomationEdge Process Studio**) intake pipelines with a transactional **PostgreSQL** backend and a responsive operations dashboard.
 
@@ -163,4 +163,4 @@ python test_concurrency.py
 
 ## 8. License
 
-Internal Banking Operations — Apex Trust Commercial Bank © 2026. All Rights Reserved.
+Internal Banking Operations — Dummy Bank Portal © 2026. All Rights Reserved.

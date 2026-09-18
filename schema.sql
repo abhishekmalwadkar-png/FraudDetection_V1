@@ -1,5 +1,5 @@
 -- ==========================================================
--- APEX TRUST COMMERCIAL BANK - FRAUD & SECURITY SCHEMA
+-- DUMMY BANK PORTAL - FRAUD & SECURITY SCHEMA
 -- Database: bank_fraud_portal
 -- ==========================================================
 

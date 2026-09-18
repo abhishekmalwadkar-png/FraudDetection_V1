@@ -1,5 +1,5 @@
 """
-Apex Trust Commercial Bank - Production Fraud Portal Backend & API Gateway
+Dummy Bank Portal - Production Fraud Portal Backend & API Gateway
 Powered by Flask & Waitress (Multi-Threaded Production WSGI Server)
 Connected live to PostgreSQL (bank_fraud_portal) via PooledDB.
 """
@@ -949,7 +949,7 @@ def api_execute_sql():
 # -------------------------------------------------------------
 def run_production_server():
     print("=" * 75)
-    print("  APEX TRUST COMMERCIAL BANK - ENTERPRISE FRAUD PORTAL")
+    print("  DUMMY BANK PORTAL - ENTERPRISE FRAUD SYSTEM")
     print("  Production WSGI Server: Waitress")
     print(f"  Environment: {APP_ENV.upper()}")
     print(f"  Host: http://{PORTAL_HOST}:{PORTAL_PORT}")
@@ -965,7 +965,7 @@ def run_production_server():
         threads=SERVER_THREADS,
         connection_limit=SERVER_CONNECTION_LIMIT,
         channel_timeout=30,
-        ident="ApexTrustBank-WSGI/1.0"
+        ident="DummyBankPortal-WSGI/1.0"
     )
 
 if __name__ == "__main__":

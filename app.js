@@ -1,5 +1,5 @@
 /**
- * Apex Trust Commercial Bank - Fraud Operations Portal
+ * Dummy Bank Portal - Fraud Operations Portal
  * Interactive Frontend Client with Live PostgreSQL Integration
  */
 
@@ -769,7 +769,7 @@ function exportTicketsCSV() {
   const encodedUri = encodeURI(csvContent);
   const link = document.createElement("a");
   link.setAttribute("href", encodedUri);
-  link.setAttribute("download", `apex_bank_fraud_report_${new Date().toISOString().slice(0, 10)}.csv`);
+  link.setAttribute("download", `dummy_bank_fraud_report_${new Date().toISOString().slice(0, 10)}.csv`);
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);

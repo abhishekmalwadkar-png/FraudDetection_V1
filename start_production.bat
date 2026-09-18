@@ -1,13 +1,13 @@
 @echo off
 REM ============================================================================
-REM Apex Trust Commercial Bank - Production WSGI Server Launcher
+REM Dummy Bank Portal - Production WSGI Server Launcher
 REM Multi-Threaded High-Performance Server with PostgreSQL Connection Pooling
 REM ============================================================================
 
-title Apex Trust Bank - Fraud Detection Portal (Production WSGI)
+title Dummy Bank Portal - Fraud Detection Portal (Production WSGI)
 
 echo ============================================================================
-echo   APEX TRUST COMMERCIAL BANK - FRAUD OPERATIONS PORTAL
+echo   DUMMY BANK PORTAL - FRAUD OPERATIONS SYSTEM
 echo   Starting Production WSGI Server (Waitress + DBUtils PooledDB)
 echo ============================================================================
 echo.

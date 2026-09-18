@@ -1,5 +1,5 @@
 """
-Apex Trust Commercial Bank - PostgreSQL Database Setup & Data Seeder
+Dummy Bank Portal - PostgreSQL Database Setup & Data Seeder
 Creates the database `bank_fraud_portal` in PostgreSQL with 25 Indian customer fraud cases.
 """
 

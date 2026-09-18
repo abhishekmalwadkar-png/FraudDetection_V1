@@ -1,6 +1,6 @@
 # Phase 1: Automated Bank Fraud Intake & Investigation Portal
 
-**Project Title**: Apex Trust Commercial Bank — Fraud Case Management & RPA Intake System  
+**Project Title**: Dummy Bank Portal — Fraud Case Management & RPA Intake System  
 **Phase**: Phase 1 Delivery Documentation  
 **Version**: 1.0  
 **Target Audience**: Engineering Leadership, Product Management, Bank Operations  
