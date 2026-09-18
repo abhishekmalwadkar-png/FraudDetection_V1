@@ -4,7 +4,7 @@ This guide provides step-by-step instructions on how to create a workflow in **P
 
 ---
 
-## 🏗️ Architecture & Data Flow
+## Architecture & Data Flow
 
 ```
 [ Input Source ] (Email, Excel, Helpdesk Form, or Webhook)
@@ -25,7 +25,7 @@ This guide provides step-by-step instructions on how to create a workflow in **P
 
 ---
 
-## 🚀 Method 1: Direct PostgreSQL Database Insert (Recommended in Process Studio)
+## Method 1: Direct PostgreSQL Database Insert (Recommended in Process Studio)
 
 ### Step 1: Configure Database Connection in Process Studio
 1. In Process Studio, open your workflow or create a new one (**File > New > Workflow/Process**).
@@ -79,12 +79,12 @@ var assigned_investigator = "Shreya Deshmukh (Support Lead)";
 - **Target Table**: `customers`
 - Check **Specify database fields**.
 - Map fields in **Database fields**:
-  - `customer_code` ➔ `customer_code`
-  - `customer_name` ➔ `full_name`
-  - `full_name` ➔ `full_name`
-  - `email` ➔ `email`
-  - `phone` ➔ `phone`
-  - `risk_tier` ➔ `severity`
+  - `customer_code` -> `customer_code`
+  - `customer_name` -> `full_name`
+  - `full_name` -> `full_name`
+  - `email` -> `email`
+  - `phone` -> `phone`
+  - `risk_tier` -> `severity`
 - In **Return auto-generated key**, check the box and set **Name of auto-generated key field** to `customer_id`.
 
 ---
@@ -93,12 +93,12 @@ var assigned_investigator = "Shreya Deshmukh (Support Lead)";
 - Drag a **Table Output** step named `Insert Account`.
 - **Target Table**: `customer_accounts`
 - Map:
-  - `customer_id` ➔ `customer_id`
-  - `customer_name` ➔ `full_name`
-  - `account_number` ➔ `account_number`
-  - `account_type` ➔ `account_type`
-  - `balance` ➔ `50000.00` (or input balance)
-  - `branch` ➔ `"Main Branch"`
+  - `customer_id` -> `customer_id`
+  - `customer_name` -> `full_name`
+  - `account_number` -> `account_number`
+  - `account_type` -> `account_type`
+  - `balance` -> `50000.00` (or input balance)
+  - `branch` -> `"Main Branch"`
 
 ---
 
@@ -106,34 +106,34 @@ var assigned_investigator = "Shreya Deshmukh (Support Lead)";
 - Drag a **Table Output** step named `Insert Fraud Ticket`.
 - **Target Table**: `fraud_tickets`
 - Map:
-  - `ticket_number` ➔ `ticket_number`
-  - `customer_id` ➔ `customer_id`
-  - `customer_name` ➔ `full_name`
-  - `account_number` ➔ `account_number`
-  - `incident_type` ➔ `incident_type`
-  - `amount_involved` ➔ `amount_involved`
-  - `recovered_amount` ➔ `0.00`
-  - `severity` ➔ `severity`
-  - `status` ➔ `status`
-  - `reported_channel` ➔ `reported_channel`
-  - `assigned_investigator` ➔ `assigned_investigator`
-  - `description` ➔ `description`
-  - `action_taken` ➔ `"Ticket registered by RPA automation bot."`
+  - `ticket_number` -> `ticket_number`
+  - `customer_id` -> `customer_id`
+  - `customer_name` -> `full_name`
+  - `account_number` -> `account_number`
+  - `incident_type` -> `incident_type`
+  - `amount_involved` -> `amount_involved`
+  - `recovered_amount` -> `0.00`
+  - `severity` -> `severity`
+  - `status` -> `status`
+  - `reported_channel` -> `reported_channel`
+  - `assigned_investigator` -> `assigned_investigator`
+  - `description` -> `description`
+  - `action_taken` -> `"Ticket registered by RPA automation bot."`
 
 ---
 
 #### 6. Insert into `audit_logs` Table (`Table Output` Step)
 - **Target Table**: `audit_logs`
 - Map:
-  - `ticket_number` ➔ `ticket_number`
-  - `customer_name` ➔ `full_name`
-  - `actor` ➔ `"AutomationEdge RPA Bot"`
-  - `action` ➔ `"NEW_COMPLAINT_AUTOMATED"`
-  - `details` ➔ `"Automated intake of fraud complaint from external channel."`
+  - `ticket_number` -> `ticket_number`
+  - `customer_name` -> `full_name`
+  - `actor` -> `"AutomationEdge RPA Bot"`
+  - `action` -> `"NEW_COMPLAINT_AUTOMATED"`
+  - `details` -> `"Automated intake of fraud complaint from external channel."`
 
 ---
 
-## ⚡ Method 2: REST Client API Step (Simplest Method)
+## Method 2: REST Client API Step (Simplest Method)
 
 If you prefer sending an API request from Process Studio instead of individual table steps:
 
@@ -173,7 +173,7 @@ If you prefer sending an API request from Process Studio instead of individual t
 
 ---
 
-## 🖥️ How It Reflects on the Bank Portal UI
+## How It Reflects on the Bank Portal UI
 
 Once your Process Studio workflow executes:
 1. The record is committed into the **`bank_fraud_portal`** database in PostgreSQL.

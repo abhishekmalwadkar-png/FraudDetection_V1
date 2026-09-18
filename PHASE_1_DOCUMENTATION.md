@@ -7,20 +7,20 @@
 
 ---
 
-## 📌 1. Executive Summary
+## 1. Executive Summary
 
 In **Phase 1**, we designed, developed, and deployed an end-to-end **Automated Fraud Complaint Intake & Case Management System**. The system bridges automated Robotic Process Automation (**AutomationEdge Process Studio**) with a **PostgreSQL Database** and a **Web-Based Banking Portal**.
 
 ### Key Objectives Achieved in Phase 1:
-- ✅ **Automated Incident Ingestion**: Built a REST API gateway allowing Process Studio RPA workflows to submit real-time fraud incidents from diverse intake channels (e.g., QR Code scams, UPI fraud, phishing, fake loan applications).
-- ✅ **Single Source of Truth Database**: Designed a normalized PostgreSQL database (`bank_fraud_portal`) with complete customer profiles, bank accounts, fraud incident records, financial transaction histories, and immutable audit logs.
-- ✅ **Clean Operations Dashboard**: Created a Corporate White & Deep Blue UI supporting live search, status filtering, one-click account freezing, detailed case investigation modals, and audit tracking.
-- ✅ **pgAdmin 4 Visibility**: Enhanced all core database tables and views with direct customer name mappings for instant readability by database administrators and investigators.
-- ✅ **Secure Parameterization**: Decoupled all database and server credentials into a centralized `.env` configuration.
+- **Automated Incident Ingestion**: Built a REST API gateway allowing Process Studio RPA workflows to submit real-time fraud incidents from diverse intake channels (e.g., QR Code scams, UPI fraud, phishing, fake loan applications).
+- **Single Source of Truth Database**: Designed a normalized PostgreSQL database (`bank_fraud_portal`) with complete customer profiles, bank accounts, fraud incident records, financial transaction histories, and immutable audit logs.
+- **Clean Operations Dashboard**: Created a Corporate White & Deep Blue UI supporting live search, status filtering, one-click account freezing, detailed case investigation modals, and audit tracking.
+- **pgAdmin 4 Visibility**: Enhanced all core database tables and views with direct customer name mappings for instant readability by database administrators and investigators.
+- **Secure Parameterization**: Decoupled all database and server credentials into a centralized `.env` configuration.
 
 ---
 
-## 🏗️ 2. System Architecture & End-to-End Flow
+## 2. System Architecture & End-to-End Flow
 
 The following diagram illustrates the Phase 1 architecture and real-time data lifecycle:
 
@@ -74,7 +74,7 @@ flowchart TD
 
 ---
 
-## 🔄 3. Process Studio to Portal Data Flow (Step-by-Step)
+## 3. Process Studio to Portal Data Flow (Step-by-Step)
 
 ```
 [ Step 1: Ingestion ]
@@ -101,7 +101,7 @@ flowchart TD
 
 ---
 
-## 📦 4. Core Components Delivered in Phase 1
+## 4. Core Components Delivered in Phase 1
 
 ### 1. Web Application Frontend (`index.html`, `styles.css`, `app.js`)
 - **Theme & Aesthetics**: Corporate White & Deep Blue banking interface with standard Indian Rupee (`₹`) currency formatting and Indian customer profiles.
@@ -140,7 +140,7 @@ flowchart TD
 
 ---
 
-## 🔒 5. Configuration & Security Management
+## 5. Configuration & Security Management
 
 All environment variables and database credentials are managed strictly through `d:\CUSTOMER\.env`:
 
@@ -165,7 +165,7 @@ PGADMIN_PASSWORD=<YOUR_PGADMIN_PASSWORD>
 
 ---
 
-## 🤖 6. Process Studio RPA Workflow Configuration
+## 6. Process Studio RPA Workflow Configuration
 
 To trigger automated fraud reporting from Process Studio:
 
@@ -194,12 +194,12 @@ var request_body = JSON.stringify({
 
 ---
 
-## 📊 7. Phase 1 Verification & Quality Assurance
+## 7. Phase 1 Verification & Quality Assurance
 
 | Test Scenario | Input / Action | Result | Status |
 | :--- | :--- | :--- | :---: |
-| **API Ingestion** | Process Studio sends Fake QR Code Scam for `Abhishek` (₹15,000) | `201 Created` returned; ticket `FRD-2026-0046` created | ✅ PASS |
-| **Duplicate Customer Handling** | Process Studio re-sends complaint with existing email `abhi@gmail.com` | Reuses customer ID; creates linked ticket `FRD-2026-005509` | ✅ PASS |
-| **Database Persistence** | SQL Query in pgAdmin 4: `SELECT * FROM fraud_tickets` | Row visible immediately with customer name, amount, and account | ✅ PASS |
-| **UI Real-Time Sync** | Refresh Bank Portal UI | New tickets appear at top; KPI counters increment dynamically | ✅ PASS |
-| **Account Freeze** | Click "Freeze Account" on UI | Sets account and ticket status to `FROZEN`; creates audit log | ✅ PASS |
+| **API Ingestion** | Process Studio sends Fake QR Code Scam for `Abhishek` (₹15,000) | `201 Created` returned; ticket `FRD-2026-0046` created | PASS |
+| **Duplicate Customer Handling** | Process Studio re-sends complaint with existing email `abhi@gmail.com` | Reuses customer ID; creates linked ticket `FRD-2026-005509` | PASS |
+| **Database Persistence** | SQL Query in pgAdmin 4: `SELECT * FROM fraud_tickets` | Row visible immediately with customer name, amount, and account | PASS |
+| **UI Real-Time Sync** | Refresh Bank Portal UI | New tickets appear at top; KPI counters increment dynamically | PASS |
+| **Account Freeze** | Click "Freeze Account" on UI | Sets account and ticket status to `FROZEN`; creates audit log | PASS |
