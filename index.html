@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Apex Trust Bank | Customer Fraud & Support Portal</title>
+  <meta name="description" content="Easy and user-friendly Bank Portal to manage customer fraud complaints, accounts, and transactions.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bank-portal-theme">
+
+  <!-- Top Global Header -->
+  <header class="top-header" id="portalHeader">
+    <div class="header-left">
+      <div class="bank-logo-wrap">
+        <div class="logo-shield">
+          <i class="fa-solid fa-building-columns"></i>
+        </div>
+        <div class="logo-text">
+          <span class="brand-title">APEX TRUST BANK</span>
+          <span class="brand-sub">Customer Support & Fraud Help Desk</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="header-right">
+      <div class="header-clock" id="liveClock">
+        <i class="fa-regular fa-clock"></i>
+        <span id="clockValue">--:--:--</span>
+      </div>
+      <button class="btn btn-primary" id="btnOpenNewTicketModal">
+        <i class="fa-solid fa-plus-circle"></i>
+        <span>Report New Fraud</span>
+      </button>
+      <div class="user-profile-badge">
+        <div class="avatar-circle">SD</div>
+        <div class="user-meta">
+          <span class="user-name">Shreya Deshmukh</span>
+          <span class="user-role">Senior Branch Officer</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Live Top Metrics Bar -->
+  <section class="kpi-ticker-ribbon" id="kpiTickerRibbon">
+    <div class="kpi-item">
+      <span class="kpi-label"><i class="fa-solid fa-users"></i> Total Customers</span>
+      <div class="kpi-val" id="kpiTotalCustomers">--</div>
+    </div>
+    <div class="kpi-divider"></div>
+    <div class="kpi-item">
+      <span class="kpi-label"><i class="fa-solid fa-file-lines"></i> Fraud Complaints</span>
+      <div class="kpi-val highlight-amber" id="kpiTotalTickets">--</div>
+    </div>
+    <div class="kpi-divider"></div>
+    <div class="kpi-item">
+      <span class="kpi-label"><i class="fa-solid fa-indian-rupee-sign"></i> Total Money Reported</span>
+      <div class="kpi-val highlight-rose" id="kpiTotalAmount">₹0.00</div>
+    </div>
+    <div class="kpi-divider"></div>
+    <div class="kpi-item">
+      <span class="kpi-label"><i class="fa-solid fa-shield-heart"></i> Money Saved / Recovered</span>
+      <div class="kpi-val highlight-emerald" id="kpiRecoveredAmount">₹0.00</div>
+    </div>
+    <div class="kpi-divider"></div>
+    <div class="kpi-item">
+      <span class="kpi-label"><i class="fa-solid fa-lock"></i> Blocked Accounts</span>
+      <div class="kpi-val highlight-cyan" id="kpiFrozenAccounts">--</div>
+    </div>
+    <div class="kpi-divider"></div>
+    <div class="kpi-item">
+      <span class="kpi-label"><i class="fa-solid fa-triangle-exclamation"></i> Urgent Cases</span>
+      <div class="kpi-val highlight-red" id="kpiCriticalCount">--</div>
+    </div>
+  </section>
+
+  <!-- Main Portal Layout -->
+  <div class="portal-body">
+    <!-- Sidebar Navigation Tabs -->
+    <aside class="portal-sidebar">
+      <div class="nav-section-title">BANK PORTAL MENU</div>
+      <nav class="portal-nav" id="mainNavigation">
+        <button class="nav-tab active" data-tab="tab-fraud-tickets" id="navTabFraudTickets">
+          <i class="fa-solid fa-clipboard-check"></i>
+          <span>Fraud Complaints</span>
+          <span class="nav-badge" id="badgeTicketCount">25</span>
+        </button>
+        <button class="nav-tab" data-tab="tab-dashboard" id="navTabDashboard">
+          <i class="fa-solid fa-chart-pie"></i>
+          <span>Overview & Summary</span>
+        </button>
+        <button class="nav-tab" data-tab="tab-customers" id="navTabCustomers">
+          <i class="fa-solid fa-users"></i>
+          <span>Customer Directory</span>
+        </button>
+        <button class="nav-tab" data-tab="tab-transactions" id="navTabTransactions">
+          <i class="fa-solid fa-receipt"></i>
+          <span>Recent Transactions</span>
+          <span class="nav-badge alert-badge" id="badgeFlaggedTxn">Live</span>
+        </button>
+        <button class="nav-tab" data-tab="tab-analytics" id="navTabAnalytics">
+          <i class="fa-solid fa-chart-simple"></i>
+          <span>Fraud Types & Help</span>
+        </button>
+        <button class="nav-tab" data-tab="tab-audit" id="navTabAudit">
+          <i class="fa-solid fa-clock-rotate-left"></i>
+          <span>Activity History</span>
+        </button>
+
+      </nav>
+    </aside>
+
+    <!-- Main Tab Viewport -->
+    <main class="portal-content" id="mainContentArea">
+
+      <!-- ================= TAB 1: FRAUD COMPLAINTS (PRIMARY) ================= -->
+      <section class="tab-panel active" id="tab-fraud-tickets">
+        <div class="panel-header">
+          <div>
+            <h1 class="panel-title">Customer Fraud Complaints</h1>
+            <p class="panel-subtitle">View and manage all complaints raised by customers regarding unauthorized charges and scams.</p>
+          </div>
+          <div class="panel-actions">
+            <button class="btn btn-outline" id="btnRefreshTickets"><i class="fa-solid fa-rotate"></i> Refresh</button>
+            <button class="btn btn-outline" id="btnExportTicketsCSV"><i class="fa-solid fa-download"></i> Download Excel / CSV</button>
+          </div>
+        </div>
+
+        <!-- Filter & Search Bar -->
+        <div class="filter-controls-card">
+          <div class="search-input-group">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="ticketSearchInput" placeholder="Search by customer name, complaint number, account number, or email...">
+          </div>
+          
+          <div class="filter-dropdowns">
+            <div class="filter-item">
+              <label><i class="fa-solid fa-flag"></i> Priority:</label>
+              <select id="filterSeverity" class="form-select">
+                <option value="ALL">All Priorities</option>
+                <option value="CRITICAL">Urgent Priority</option>
+                <option value="HIGH">High Priority</option>
+                <option value="MEDIUM">Medium Priority</option>
+                <option value="LOW">Low Priority</option>
+              </select>
+            </div>
+
+            <div class="filter-item">
+              <label><i class="fa-solid fa-circle-notch"></i> Status:</label>
+              <select id="filterStatus" class="form-select">
+                <option value="ALL">All Statuses</option>
+                <option value="UNDER_INVESTIGATION">In Progress / Checking</option>
+                <option value="FROZEN">Account Blocked</option>
+                <option value="ESCALATED">Escalated to Senior Team</option>
+                <option value="RESOLVED">Solved / Refunded</option>
+              </select>
+            </div>
+
+            <div class="filter-item">
+              <label><i class="fa-solid fa-tags"></i> Scam Type:</label>
+              <select id="filterIncidentType" class="form-select">
+                <option value="ALL">All Types</option>
+                <option value="Transfer">Bank Transfer Scam</option>
+                <option value="SIM">SIM Card / Fake OTP</option>
+                <option value="Email">Fake Email / Phishing</option>
+                <option value="Card">ATM / Card Cloning</option>
+                <option value="Voice">Fake Phone Call Scam</option>
+                <option value="QR">Fake QR Code Scam</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Results Counter & Quick Pills -->
+        <div class="results-meta-bar">
+          <div>Showing <strong id="visibleTicketCount">0</strong> customer complaints</div>
+          <div class="severity-quick-stats">
+            <span class="tag-pill tag-critical" id="pillCritCount">0 Urgent</span>
+            <span class="tag-pill tag-high" id="pillHighCount">0 High</span>
+            <span class="tag-pill tag-medium" id="pillMedCount">0 Medium</span>
+            <span class="tag-pill tag-resolved" id="pillResCount">0 Solved</span>
+          </div>
+        </div>
+
+        <!-- Fraud Tickets Table -->
+        <div class="table-container">
+          <table class="data-table" id="fraudTicketsTable">
+            <thead>
+              <tr>
+                <th>Complaint #</th>
+                <th>Customer Name</th>
+                <th>Contact Info</th>
+                <th>Account # / Type</th>
+                <th>Type of Fraud</th>
+                <th>Amount (₹)</th>
+                <th>Priority</th>
+                <th>Current Status</th>
+                <th>Handled By</th>
+                <th style="text-align: right;">Action</th>
+              </tr>
+            </thead>
+            <tbody id="fraudTicketsTableBody">
+              <tr>
+                <td colspan="10" class="loading-state">
+                  <div class="spinner"></div> Loading customer records...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ================= TAB 2: OVERVIEW & SUMMARY ================= -->
+      <section class="tab-panel" id="tab-dashboard">
+        <div class="panel-header">
+          <div>
+            <h1 class="panel-title">Fraud Prevention & Recovery Summary</h1>
+            <p class="panel-subtitle">Simple overview of customer complaints, recovered money, and common scam types.</p>
+          </div>
+          <div class="panel-actions">
+            <span class="live-dot-label"><span class="status-pulse green"></span> System Online</span>
+          </div>
+        </div>
+
+        <div class="dashboard-grid-cards">
+          <div class="dash-card">
+            <div class="dash-card-header">
+              <span><i class="fa-solid fa-chart-column"></i> Most Common Types of Fraud</span>
+              <span class="card-badge">Summary</span>
+            </div>
+            <div class="bar-chart-container" id="chartIncidentTypes">
+              <!-- Populated dynamically -->
+            </div>
+          </div>
+
+          <div class="dash-card">
+            <div class="dash-card-header">
+              <span><i class="fa-solid fa-headset"></i> Where Fraud Was Reported</span>
+              <span class="card-badge">Channels</span>
+            </div>
+            <div class="channel-grid" id="chartChannels">
+              <!-- Populated dynamically -->
+            </div>
+          </div>
+        </div>
+
+        <div class="dashboard-grid-cards" style="margin-top: 20px;">
+          <div class="dash-card">
+            <div class="dash-card-header">
+              <span><i class="fa-solid fa-bell"></i> High Priority Complaints</span>
+              <span class="card-badge pulse-red">Needs Quick Action</span>
+            </div>
+            <div class="critical-queue-list" id="criticalQueueList">
+              <!-- Populated dynamically -->
+            </div>
+          </div>
+
+          <div class="dash-card">
+            <div class="dash-card-header">
+              <span><i class="fa-solid fa-piggy-bank"></i> Money Recovery Rate</span>
+              <span class="card-badge">Safety Score</span>
+            </div>
+            <div class="recovery-metrics-box">
+              <div class="circular-metric">
+                <div class="metric-circle-inner">
+                  <span class="metric-circle-val" id="recoveryRatePercent">74%</span>
+                  <span class="metric-circle-sub">Money Saved</span>
+                </div>
+              </div>
+              <div class="recovery-details-list">
+                <div class="rec-row">
+                  <span>Total Reported Amount:</span>
+                  <strong id="recGrossVal">₹2,21,61,300.00</strong>
+                </div>
+                <div class="rec-row">
+                  <span>Money Recovered / Saved:</span>
+                  <strong class="highlight-emerald" id="recRecoveredVal">₹1,58,90,300.00</strong>
+                </div>
+                <div class="rec-row">
+                  <span>Under Process:</span>
+                  <strong class="highlight-amber" id="recPendingVal">₹62,71,000.00</strong>
+                </div>
+                <div class="rec-row">
+                  <span>Bank Guarantee:</span>
+                  <strong class="highlight-cyan">Fully Protected</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= TAB 3: CUSTOMER DIRECTORY ================= -->
+      <section class="tab-panel" id="tab-customers">
+        <div class="panel-header">
+          <div>
+            <h1 class="panel-title">Customer Directory</h1>
+            <p class="panel-subtitle">List of all bank customers, account balances, and reported fraud history.</p>
+          </div>
+          <div class="search-input-group small">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="custSearchInput" placeholder="Search customer name or account...">
+          </div>
+        </div>
+
+        <div class="table-container">
+          <table class="data-table" id="customersTable">
+            <thead>
+              <tr>
+                <th>Customer ID</th>
+                <th>Customer Name</th>
+                <th>Email & Phone</th>
+                <th>City / State</th>
+                <th>Account Number</th>
+                <th>Account Type</th>
+                <th>Account Balance (₹)</th>
+                <th>Account Status</th>
+                <th>Risk Level</th>
+                <th>Complaints</th>
+                <th style="text-align: right;">Action</th>
+              </tr>
+            </thead>
+            <tbody id="customersTableBody">
+              <!-- Populated dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ================= TAB 4: RECENT TRANSACTIONS ================= -->
+      <section class="tab-panel" id="tab-transactions">
+        <div class="panel-header">
+          <div>
+            <h1 class="panel-title">Recent Transactions & Fraud Alerts</h1>
+            <p class="panel-subtitle">Track money transfers, payments, and any transactions flagged as suspicious.</p>
+          </div>
+          <div class="panel-actions">
+            <span class="tag-pill tag-resolved"><i class="fa-solid fa-shield-halved"></i> Automated Protection Active</span>
+          </div>
+        </div>
+
+        <div class="table-container">
+          <table class="data-table" id="txnsTable">
+            <thead>
+              <tr>
+                <th>Transaction ID</th>
+                <th>Customer Name</th>
+                <th>Account #</th>
+                <th>Amount (₹)</th>
+                <th>Transfer Method</th>
+                <th>Paid To / Destination</th>
+                <th>Location / IP</th>
+                <th>Risk Rating</th>
+                <th>Fraud Flag</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="txnsTableBody">
+              <!-- Populated dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ================= TAB 5: FRAUD TYPES & HELP ================= -->
+      <section class="tab-panel" id="tab-analytics">
+        <div class="panel-header">
+          <div>
+            <h1 class="panel-title">Understanding Common Banking Scams</h1>
+            <p class="panel-subtitle">Guide to common fraud methods and safety steps to protect customer accounts.</p>
+          </div>
+        </div>
+
+        <div class="forensics-grid">
+          <div class="dash-card">
+            <div class="dash-card-header">
+              <span><i class="fa-solid fa-circle-question"></i> Top Scam Categories</span>
+            </div>
+            <div class="taxonomy-list">
+              <div class="tax-item">
+                <div class="tax-icon red"><i class="fa-solid fa-money-bill-transfer"></i></div>
+                <div class="tax-info">
+                  <strong>Unauthorized Bank Transfers</strong>
+                  <p>Money sent to unknown accounts without customer's consent.</p>
+                </div>
+                <span class="tax-badge">6 Complaints • ₹67.44 Lakhs</span>
+              </div>
+              <div class="tax-item">
+                <div class="tax-icon orange"><i class="fa-solid fa-sim-card"></i></div>
+                <div class="tax-info">
+                  <strong>Fake OTP & SIM Card Swap Scams</strong>
+                  <p>Scammers tricking telecom operators or asking for one-time passwords.</p>
+                </div>
+                <span class="tax-badge">4 Complaints • ₹12.59 Lakhs</span>
+              </div>
+              <div class="tax-item">
+                <div class="tax-icon purple"><i class="fa-solid fa-phone-volume"></i></div>
+                <div class="tax-info">
+                  <strong>Fake Phone Calls & Impersonation</strong>
+                  <p>Scammers pretending to be bank managers or family members in an emergency.</p>
+                </div>
+                <span class="tax-badge">2 Complaints • ₹18.00 Lakhs</span>
+              </div>
+              <div class="tax-item">
+                <div class="tax-icon blue"><i class="fa-solid fa-credit-card"></i></div>
+                <div class="tax-info">
+                  <strong>ATM & Card Cloning</strong>
+                  <p>Illegal devices installed at ATMs or swipe machines copying card data.</p>
+                </div>
+                <span class="tax-badge">5 Complaints • ₹6.84 Lakhs</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="dash-card">
+            <div class="dash-card-header">
+              <span><i class="fa-solid fa-earth-americas"></i> Scam Origin Overview</span>
+            </div>
+            <div class="threat-origins-list">
+              <div class="origin-row">
+                <span>Suspicious Foreign IP Addresses</span>
+                <div class="progress-bar-wrap"><div class="bar-fill" style="width: 42%;"></div></div>
+                <strong>42%</strong>
+              </div>
+              <div class="origin-row">
+                <span>Unverified Payment Gateways</span>
+                <div class="progress-bar-wrap"><div class="bar-fill red" style="width: 28%;"></div></div>
+                <strong>28%</strong>
+              </div>
+              <div class="origin-row">
+                <span>Fake SMS / Phone Calls</span>
+                <div class="progress-bar-wrap"><div class="bar-fill amber" style="width: 18%;"></div></div>
+                <strong>18%</strong>
+              </div>
+              <div class="origin-row">
+                <span>Untrusted Online Links</span>
+                <div class="progress-bar-wrap"><div class="bar-fill cyan" style="width: 12%;"></div></div>
+                <strong>12%</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= TAB 6: ACTIVITY HISTORY ================= -->
+      <section class="tab-panel" id="tab-audit">
+        <div class="panel-header">
+          <div>
+            <h1 class="panel-title">Staff Activity & Complaint Log History</h1>
+            <p class="panel-subtitle">Transparent record of every action taken by bank staff (blocking accounts, status updates, notes).</p>
+          </div>
+          <button class="btn btn-outline" id="btnDownloadSAR"><i class="fa-solid fa-file-pdf"></i> Download Official Report</button>
+        </div>
+
+        <div class="table-container">
+          <table class="data-table" id="auditTable">
+            <thead>
+              <tr>
+                <th>Log #</th>
+                <th>Complaint #</th>
+                <th>Customer Name</th>
+                <th>Staff Member</th>
+                <th>Action Taken</th>
+                <th>Notes / Details</th>
+                <th>Date & Time</th>
+              </tr>
+            </thead>
+            <tbody id="auditTableBody">
+              <!-- Populated dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+
+
+    </main>
+  </div>
+
+  <!-- Complaint Detail Slide-Over Drawer -->
+  <div class="drawer-overlay" id="drawerOverlay">
+    <div class="incident-drawer" id="incidentDrawer">
+      <div class="drawer-header">
+        <div class="drawer-header-left">
+          <span class="tag-pill" id="drawerSeverityBadge">URGENT</span>
+          <h2 id="drawerTicketNumber">#FRD-2026-0000</h2>
+        </div>
+        <button class="btn-close-drawer" id="btnCloseDrawer"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="drawer-content" id="drawerContent">
+        <!-- Customer Details Box -->
+        <div class="drawer-card">
+          <div class="drawer-card-title"><i class="fa-solid fa-user"></i> Customer Information</div>
+          <div class="dossier-grid">
+            <div>
+              <span class="dossier-label">Customer Name:</span>
+              <strong id="dossierName" class="dossier-value">Rajesh Sharma</strong>
+            </div>
+            <div>
+              <span class="dossier-label">Customer ID:</span>
+              <span id="dossierCode" class="dossier-value code-font">CUST-80219</span>
+            </div>
+            <div>
+              <span class="dossier-label">Email Address:</span>
+              <span id="dossierEmail" class="dossier-value">rajesh.sharma@mumbaitech.in</span>
+            </div>
+            <div>
+              <span class="dossier-label">Phone Number:</span>
+              <span id="dossierPhone" class="dossier-value">+91 98201 44521</span>
+            </div>
+            <div>
+              <span class="dossier-label">Bank Account Number:</span>
+              <strong id="dossierAccount" class="dossier-value code-font">ACT-4091-8821</strong>
+            </div>
+            <div>
+              <span class="dossier-label">Account Balance & Status:</span>
+              <span id="dossierBalance" class="dossier-value highlight-emerald">BUSINESS (₹3,48,250.00) - ACTIVE</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Fraud Incident Box -->
+        <div class="drawer-card">
+          <div class="drawer-card-title"><i class="fa-solid fa-circle-exclamation"></i> What Happened? (Complaint Summary)</div>
+          <div class="dossier-grid">
+            <div>
+              <span class="dossier-label">Type of Scam:</span>
+              <strong id="dossierType" class="dossier-value highlight-rose">Unauthorized Bank Transfer</strong>
+            </div>
+            <div>
+              <span class="dossier-label">Money Reported:</span>
+              <strong id="dossierAmount" class="dossier-value highlight-red">₹1,25,000.00</strong>
+            </div>
+            <div>
+              <span class="dossier-label">Money Recovered:</span>
+              <strong id="dossierRecovered" class="dossier-value highlight-emerald">₹1,25,000.00</strong>
+            </div>
+            <div>
+              <span class="dossier-label">Reported Via:</span>
+              <span id="dossierChannel" class="dossier-value">Online Banking System</span>
+            </div>
+            <div>
+              <span class="dossier-label">Location / IP:</span>
+              <span id="dossierIp" class="dossier-value code-font">185.220.101.44</span>
+            </div>
+            <div>
+              <span class="dossier-label">Recipient / Destination:</span>
+              <span id="dossierSuspect" class="dossier-value">Unknown Beneficiary</span>
+            </div>
+          </div>
+          
+          <div class="narrative-box">
+            <span class="dossier-label">Customer's Statement & Details:</span>
+            <p id="dossierDescription" class="narrative-text">Customer reported unauthorized transaction...</p>
+          </div>
+
+          <div class="narrative-box" style="margin-top: 10px; background: #eff6ff; border-color: #bfdbfe;">
+            <span class="dossier-label" style="color: #0052cc;"><i class="fa-solid fa-circle-check"></i> Action Taken by Bank:</span>
+            <p id="dossierAction" class="narrative-text">Transfer recalled; Account secured.</p>
+          </div>
+        </div>
+
+        <!-- Immediate Operations Actions -->
+        <div class="drawer-card">
+          <div class="drawer-card-title"><i class="fa-solid fa-hand-holding-hand"></i> Quick Actions</div>
+          <div class="action-buttons-stack">
+            <button class="btn btn-danger btn-block" id="btnDrawerFreeze">
+              <i class="fa-solid fa-lock"></i> Temporarily Block Customer Account
+            </button>
+            <div class="drawer-button-group">
+              <button class="btn btn-warning" id="btnDrawerInvestigate">
+                <i class="fa-solid fa-clock"></i> Mark as In Progress
+              </button>
+              <button class="btn btn-success" id="btnDrawerResolve">
+                <i class="fa-solid fa-circle-check"></i> Mark as Solved / Refunded
+              </button>
+            </div>
+            <button class="btn btn-outline btn-block" id="btnDrawerEscalate">
+              <i class="fa-solid fa-user-shield"></i> Escalate to Senior Branch Manager
+            </button>
+          </div>
+        </div>
+
+        <!-- Linked Transactions -->
+        <div class="drawer-card">
+          <div class="drawer-card-title"><i class="fa-solid fa-credit-card"></i> Suspicious Transaction Details</div>
+          <div id="drawerTxnList" class="drawer-txn-list">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+
+        <!-- Audit Trail -->
+        <div class="drawer-card">
+          <div class="drawer-card-title"><i class="fa-solid fa-list-ul"></i> Action History for this Complaint</div>
+          <div id="drawerAuditList" class="drawer-audit-list">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Report New Fraud Incident -->
+  <div class="modal-overlay" id="newTicketModal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i class="fa-solid fa-circle-plus highlight-emerald"></i>
+          <span>Report a Customer Fraud Complaint</span>
+        </div>
+        <button class="btn-close-modal" id="btnCloseModal"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <form id="newFraudTicketForm" class="modal-form">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Customer Full Name *</label>
+            <input type="text" id="formCustName" required placeholder="e.g. Ramesh Sharma">
+          </div>
+          <div class="form-group">
+            <label>Customer Email Address *</label>
+            <input type="email" id="formCustEmail" required placeholder="e.g. ramesh.sharma@example.com">
+          </div>
+          <div class="form-group">
+            <label>Phone Number</label>
+            <input type="text" id="formCustPhone" placeholder="e.g. +91 98765 43210">
+          </div>
+          <div class="form-group">
+            <label>Bank Account Number *</label>
+            <input type="text" id="formAccNum" required placeholder="e.g. ACT-9921-4400">
+          </div>
+          <div class="form-group">
+            <label>Account Type</label>
+            <select id="formAccType" class="form-select">
+              <option value="CHECKING">Current Account</option>
+              <option value="SAVINGS" selected>Savings Account</option>
+              <option value="BUSINESS">Business Account</option>
+              <option value="WEALTH_MANAGEMENT">Wealth Account</option>
+              <option value="CREDIT_CARD">Credit Card</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Type of Fraud / Scam *</label>
+            <select id="formIncidentType" class="form-select" required>
+              <option value="Unauthorized Bank Transfer">Unauthorized Bank Transfer</option>
+              <option value="SIM Card Swap & Fake OTP Scam">SIM Card Swap & Fake OTP Scam</option>
+              <option value="Fake Email / Fake Bill Scam">Fake Email / Fake Bill Scam</option>
+              <option value="ATM / Card Cloning Scam">ATM / Card Cloning Scam</option>
+              <option value="Fake Voice Call Scam">Fake Voice Call Scam</option>
+              <option value="Online Crypto Wallet Theft">Online Crypto Wallet Theft</option>
+              <option value="Fake / Altered Cheque Deposit">Fake / Altered Cheque Deposit</option>
+              <option value="Fake QR Code Scam">Fake QR Code Scam</option>
+              <option value="Account Lockout / Extortion Attempt">Account Lockout / Extortion Attempt</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Reported Amount (INR ₹) *</label>
+            <input type="number" id="formAmount" required step="0.01" placeholder="e.g. 50000.00">
+          </div>
+          <div class="form-group">
+            <label>Priority Level *</label>
+            <select id="formSeverity" class="form-select" required>
+              <option value="CRITICAL">Urgent (Large amount / Immediate action needed)</option>
+              <option value="HIGH" selected>High Priority (Unauthorized transfer / SIM swap)</option>
+              <option value="MEDIUM">Medium Priority (Phishing / Card issue)</option>
+              <option value="LOW">Low Priority (Minor charge / Billing dispute)</option>
+            </select>
+          </div>
+          <div class="form-group full-span">
+            <label>Suspicious Person / Company / Account (if known)</label>
+            <input type="text" id="formSuspect" placeholder="e.g. Unknown UPI ID or website name">
+          </div>
+          <div class="form-group full-span">
+            <label>Complaint Details & Explanation *</label>
+            <textarea id="formDescription" required rows="3" placeholder="Explain what happened, date and time of the incident, and customer statement..."></textarea>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" id="btnCancelModal">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btnSubmitNewTicket">
+            <i class="fa-solid fa-check"></i> Submit Complaint
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

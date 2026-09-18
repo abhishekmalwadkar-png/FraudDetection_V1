@@ -1,0 +1,28 @@
+# Environment & Sensitive Credentials
+.env
+*.env.local
+
+# Python Cache & Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv/
+
+# Database & SQLite files (if any)
+*.db
+*.sqlite3
+
+# Operating System & IDE Artifacts
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log
+
+# Scratch scripts
+scratch/
