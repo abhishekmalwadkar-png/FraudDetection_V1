@@ -13,6 +13,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initTabs();
   initClock();
   initEventListeners();
+  checkSystemHealth();
   loadAllData();
 
   // 10-second background auto-refresh for real-time Process Studio RPA live sync
@@ -21,9 +22,38 @@ document.addEventListener("DOMContentLoaded", () => {
     const isDrawerOpen = document.getElementById("drawerOverlay")?.classList.contains("open");
     if (!isModalOpen && !isDrawerOpen) {
       loadAllData();
+      checkSystemHealth();
     }
   }, 10000);
 });
+
+// System Health Heartbeat Monitor
+async function checkSystemHealth() {
+  const badge = document.getElementById("headerHealthBadge");
+  const text = document.getElementById("healthStatusText");
+  if (!badge || !text) return;
+
+  try {
+    const t0 = performance.now();
+    const res = await fetch("/health");
+    const roundtripMs = Math.round(performance.now() - t0);
+    const data = await res.json();
+
+    if (res.ok && data.status === "UP") {
+      badge.className = "header-health-badge";
+      text.textContent = `Live (${data.database.ping_latency_ms || roundtripMs}ms)`;
+      badge.title = `Server: ${data.server} | DB: ${data.database.status} (${data.database.pool.database}) | Threads: ${data.worker_threads}`;
+    } else {
+      badge.className = "header-health-badge degraded";
+      text.textContent = `Degraded (${roundtripMs}ms)`;
+      badge.title = "Database or service connection degraded";
+    }
+  } catch (err) {
+    badge.className = "header-health-badge down";
+    text.textContent = "Offline";
+    badge.title = "Backend server unreachable";
+  }
+}
 
 // 1. Tab Navigation
 function initTabs() {

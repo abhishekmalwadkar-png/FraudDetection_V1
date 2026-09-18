@@ -22,6 +22,10 @@ except ImportError:
                     key, val = line.split("=", 1)
                     os.environ.setdefault(key.strip(), val.strip())
 
+# Application Environment
+APP_ENV = os.getenv("APP_ENV", "production").lower()
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
+
 # Database Parameters & Connection Pooling
 DB_HOST = os.getenv("DB_HOST", "localhost")
 DB_PORT = int(os.getenv("DB_PORT", "5432"))
@@ -44,3 +48,7 @@ PORTAL_HOST = os.getenv("PORTAL_HOST", "127.0.0.1")
 PORTAL_PORT = int(os.getenv("PORTAL_PORT", "5050"))
 SERVER_THREADS = int(os.getenv("SERVER_THREADS", "16"))
 SERVER_CONNECTION_LIMIT = int(os.getenv("SERVER_CONNECTION_LIMIT", "200"))
+
+# Security & Governance
+API_SECRET_KEY = os.getenv("API_SECRET_KEY", "").strip()
+ENABLE_SQL_CONSOLE = os.getenv("ENABLE_SQL_CONSOLE", "true").lower() in ("true", "1", "yes")

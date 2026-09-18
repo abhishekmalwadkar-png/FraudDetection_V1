@@ -1,33 +1,50 @@
 """
-Apex Trust Commercial Bank - Production Fraud Portal Backend & API Server
+Apex Trust Commercial Bank - Production Fraud Portal Backend & API Gateway
 Powered by Flask & Waitress (Multi-Threaded Production WSGI Server)
-Connected live to PostgreSQL (bank_fraud_portal).
+Connected live to PostgreSQL (bank_fraud_portal) via PooledDB.
 """
 
 import os
+import time
 import json
+import uuid
 import logging
 from decimal import Decimal
-from datetime import datetime, date
-from flask import Flask, request, jsonify, send_from_directory, make_response
+from datetime import datetime, date, timezone
+from flask import Flask, request, jsonify, send_from_directory, make_response, g
 from flask.json.provider import DefaultJSONProvider
 import pg8000.dbapi
 import waitress
 
 from config import (
+    APP_ENV, LOG_LEVEL,
     PORTAL_HOST, PORTAL_PORT,
     DB_HOST, DB_PORT, DB_USER, DB_PASS, DB_NAME,
     DB_POOL_MIN_CACHED, DB_POOL_MAX_CACHED, DB_POOL_MAX_CONNECTIONS,
-    SERVER_THREADS, SERVER_CONNECTION_LIMIT
+    SERVER_THREADS, SERVER_CONNECTION_LIMIT,
+    API_SECRET_KEY, ENABLE_SQL_CONSOLE
 )
 from dbutils.pooled_db import PooledDB
 
-# Configure logging
+# -------------------------------------------------------------
+# Production Logging Configuration
+# -------------------------------------------------------------
+numeric_level = getattr(logging, LOG_LEVEL, logging.INFO)
 logging.basicConfig(
-    level=logging.INFO,
+    level=numeric_level,
     format='%(asctime)s [%(levelname)s] [Thread-%(thread)d] %(message)s'
 )
 logger = logging.getLogger("BankPortalServer")
+
+# Metrics & Observability Collector
+START_TIME = time.time()
+METRICS = {
+    "total_requests": 0,
+    "total_errors": 0,
+    "total_fraud_tickets_created": 0,
+    "endpoints_hit": {},
+    "status_codes": {}
+}
 
 # Custom JSON Provider for Flask to serialize Decimals and datetimes cleanly
 class CustomFlaskJSONProvider(DefaultJSONProvider):
@@ -44,32 +61,80 @@ app.json = CustomFlaskJSONProvider(app)
 # -------------------------------------------------------------
 # Database Connection Pooling (Thread-Safe Warm Pool)
 # -------------------------------------------------------------
-logger.info(f"Initializing PostgreSQL Connection Pool (min={DB_POOL_MIN_CACHED}, max={DB_POOL_MAX_CONNECTIONS}) to {DB_NAME}...")
-db_pool = PooledDB(
-    creator=pg8000.dbapi,
-    maxconnections=DB_POOL_MAX_CONNECTIONS,
-    mincached=DB_POOL_MIN_CACHED,
-    maxcached=DB_POOL_MAX_CACHED,
-    maxshared=0,
-    blocking=True,
-    host=DB_HOST,
-    port=DB_PORT,
-    user=DB_USER,
-    password=DB_PASS,
-    database=DB_NAME
+logger.info(
+    f"Initializing PostgreSQL Connection Pool (min={DB_POOL_MIN_CACHED}, max={DB_POOL_MAX_CONNECTIONS}) to {DB_NAME}...",
+    extra={"request_id": "INIT"}
 )
-logger.info("[+] PostgreSQL Connection Pool is ready and active.")
 
-def get_db_connection():
-    """Retrieve an active, pre-connected PostgreSQL socket from the warm connection pool in sub-millisecond time."""
-    return db_pool.connection()
+def create_db_pool():
+    return PooledDB(
+        creator=pg8000.dbapi,
+        maxconnections=DB_POOL_MAX_CONNECTIONS,
+        mincached=DB_POOL_MIN_CACHED,
+        maxcached=DB_POOL_MAX_CACHED,
+        maxshared=0,
+        blocking=True,
+        host=DB_HOST,
+        port=DB_PORT,
+        user=DB_USER,
+        password=DB_PASS,
+        database=DB_NAME
+    )
 
-# Enable CORS for all incoming API routes
+db_pool = create_db_pool()
+logger.info("[+] PostgreSQL Connection Pool is ready and active.", extra={"request_id": "INIT"})
+
+def get_db_connection(max_retries=2):
+    """Retrieve an active, pre-connected PostgreSQL socket with automatic reconnection resilience."""
+    last_err = None
+    for attempt in range(max_retries):
+        try:
+            return db_pool.connection()
+        except Exception as e:
+            last_err = e
+            logger.warning(f"Connection pool acquisition retry {attempt+1}/{max_retries}: {e}", extra={"request_id": getattr(g, "request_id", "SYS")})
+            time.sleep(0.1)
+    raise RuntimeError(f"Database connection pool exhausted or unreachable: {last_err}")
+
+# -------------------------------------------------------------
+# Middleware: Request Tracing, Latency & Access Logging
+# -------------------------------------------------------------
+@app.before_request
+def before_request_hook():
+    g.start_time = time.time()
+    # Read incoming request ID or generate a new trace UUID
+    req_id = request.headers.get("X-Request-ID") or f"REQ-{uuid.uuid4().hex[:12].upper()}"
+    g.request_id = req_id
+    
+    # Update global metrics
+    METRICS["total_requests"] += 1
+    endpoint = request.endpoint or request.path
+    METRICS["endpoints_hit"][endpoint] = METRICS["endpoints_hit"].get(endpoint, 0) + 1
+
 @app.after_request
-def add_cors_headers(response):
+def after_request_hook(response):
+    req_id = getattr(g, "request_id", "UNKNOWN")
+    response.headers['X-Request-ID'] = req_id
     response.headers['Access-Control-Allow-Origin'] = '*'
     response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PATCH, OPTIONS'
-    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-API-Key, X-Request-ID'
+    
+    # Calculate duration
+    duration_ms = (time.time() - getattr(g, "start_time", time.time())) * 1000.0
+    status = response.status_code
+    METRICS["status_codes"][status] = METRICS["status_codes"].get(status, 0) + 1
+    
+    if status >= 400:
+        METRICS["total_errors"] += 1
+        logger.warning(
+            f"{request.method} {request.path} {status} - {duration_ms:.2f}ms - IP: {request.remote_addr}",
+            extra={"request_id": req_id}
+        )
+    else:
+        logger.info(
+            f"{request.method} {request.path} {status} - {duration_ms:.2f}ms - IP: {request.remote_addr}",
+            extra={"request_id": req_id}
+        )
     return response
 
 # Handle OPTIONS preflight globally
@@ -78,8 +143,85 @@ def add_cors_headers(response):
 def handle_options(dummy=None):
     return make_response('', 200)
 
-# Helper function to extract fields flexibly regardless of casing/naming
+# -------------------------------------------------------------
+# Centralized JSON Error Handlers
+# -------------------------------------------------------------
+@app.errorhandler(400)
+def error_bad_request(e):
+    return jsonify({
+        "error": "Bad Request",
+        "message": str(getattr(e, "description", e)),
+        "request_id": getattr(g, "request_id", "UNKNOWN"),
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }), 400
+
+@app.errorhandler(401)
+def error_unauthorized(e):
+    return jsonify({
+        "error": "Unauthorized",
+        "message": "Valid API Key or Bearer token is required.",
+        "request_id": getattr(g, "request_id", "UNKNOWN"),
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }), 401
+
+@app.errorhandler(403)
+def error_forbidden(e):
+    return jsonify({
+        "error": "Forbidden",
+        "message": str(getattr(e, "description", "Action is forbidden.")),
+        "request_id": getattr(g, "request_id", "UNKNOWN"),
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }), 403
+
+@app.errorhandler(404)
+def error_not_found(e):
+    return jsonify({
+        "error": "Not Found",
+        "message": "The requested resource was not found on this server.",
+        "request_id": getattr(g, "request_id", "UNKNOWN"),
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }), 404
+
+@app.errorhandler(405)
+def error_method_not_allowed(e):
+    return jsonify({
+        "error": "Method Not Allowed",
+        "message": "The HTTP method is not supported for this endpoint.",
+        "request_id": getattr(g, "request_id", "UNKNOWN"),
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }), 405
+
+@app.errorhandler(500)
+def error_internal_server(e):
+    req_id = getattr(g, "request_id", "UNKNOWN")
+    logger.error(f"Internal Server Error: {e}", exc_info=True, extra={"request_id": req_id})
+    return jsonify({
+        "error": "Internal Server Error",
+        "message": "An unexpected server error occurred. Please contact the SOC operations team.",
+        "request_id": req_id,
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }), 500
+
+# -------------------------------------------------------------
+# Security & Helper Functions
+# -------------------------------------------------------------
+def check_api_auth():
+    """Verify API authentication if API_SECRET_KEY is configured in .env."""
+    if not API_SECRET_KEY:
+        return True  # Open local dev mode
+    
+    # Check X-API-Key header or Authorization: Bearer <key>
+    auth_header = request.headers.get("Authorization", "")
+    api_key_header = request.headers.get("X-API-Key", "")
+    
+    if api_key_header and api_key_header == API_SECRET_KEY:
+        return True
+    if auth_header.startswith("Bearer ") and auth_header.split(" ", 1)[1].strip() == API_SECRET_KEY:
+        return True
+    return False
+
 def _get_val(payload, *keys, default=None):
+    """Helper function to extract fields flexibly regardless of casing/naming."""
     if not isinstance(payload, dict):
         return default
     # Direct lookup
@@ -138,19 +280,59 @@ def serve_js():
 
 @app.route('/health')
 def health_check():
+    """Enterprise Health Check with Live PostgreSQL Ping & Pool Latency."""
+    t0 = time.time()
+    db_ok = False
+    db_latency_ms = 0.0
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT 1;")
+        cur.fetchone()
+        cur.close()
+        conn.close()
+        db_ok = True
+        db_latency_ms = round((time.time() - t0) * 1000.0, 2)
+    except Exception as e:
+        logger.error(f"Health check DB ping failed: {e}", extra={"request_id": getattr(g, "request_id", "HEALTH")})
+
     return jsonify({
-        "status": "UP",
+        "status": "UP" if db_ok else "DEGRADED",
+        "environment": APP_ENV,
         "server": "Waitress (Production WSGI)",
         "worker_threads": SERVER_THREADS,
-        "database_pool": {
-            "status": "ACTIVE",
-            "type": "DBUtils.PooledDB",
-            "min_cached": DB_POOL_MIN_CACHED,
-            "max_cached": DB_POOL_MAX_CACHED,
-            "max_connections": DB_POOL_MAX_CONNECTIONS,
-            "database": DB_NAME
+        "database": {
+            "status": "CONNECTED" if db_ok else "DISCONNECTED",
+            "ping_latency_ms": db_latency_ms,
+            "pool": {
+                "type": "DBUtils.PooledDB",
+                "min_cached": DB_POOL_MIN_CACHED,
+                "max_cached": DB_POOL_MAX_CACHED,
+                "max_connections": DB_POOL_MAX_CONNECTIONS,
+                "database": DB_NAME
+            }
         },
-        "timestamp": datetime.now().isoformat()
+        "uptime_seconds": round(time.time() - START_TIME, 1),
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    })
+
+@app.route('/api/metrics')
+def api_metrics():
+    """Observability & Telemetry Endpoint for System Monitoring."""
+    uptime = time.time() - START_TIME
+    return jsonify({
+        "uptime_seconds": round(uptime, 2),
+        "total_requests": METRICS["total_requests"],
+        "total_errors": METRICS["total_errors"],
+        "error_rate": round(METRICS["total_errors"] / max(1, METRICS["total_requests"]), 4),
+        "total_fraud_tickets_created": METRICS["total_fraud_tickets_created"],
+        "endpoints_hit": METRICS["endpoints_hit"],
+        "status_codes": METRICS["status_codes"],
+        "server": {
+            "threads": SERVER_THREADS,
+            "max_connections": SERVER_CONNECTION_LIMIT
+        },
+        "timestamp": datetime.now(timezone.utc).isoformat()
     })
 
 # -------------------------------------------------------------
@@ -349,46 +531,55 @@ def api_get_single_ticket(ticket_id):
 
 @app.route('/api/fraud-tickets', methods=['POST'])
 def api_create_fraud_ticket():
+    # Verify API authorization if configured
+    if not check_api_auth():
+        return jsonify({"error": "Unauthorized", "message": "Invalid or missing API key."}), 401
+
     raw_body = request.get_data(as_text=True)
     payload = parse_incoming_payload()
 
     if (not payload or len(payload) == 0) and "[object Object]" in raw_body:
         return jsonify({
             "success": False,
-            "error": "Received '[object Object]' as request body. In Process Studio, please use 'JSON.stringify(data)' or the 'Generate JSON Output' step to format your body field as a valid JSON string before sending to the REST Client step."
+            "error": "Received '[object Object]' as request body. In Process Studio, please use 'JSON.stringify(data)' to format your body field as a valid JSON string before sending."
         }), 400
+
+    # Field extraction & input validation
+    cust_name = str(_get_val(payload, "full_name", "customer_name", "fullname", "name", "cust_name", default="Ramesh Kumar")).strip()
+    if not cust_name:
+        return jsonify({"success": False, "error": "Customer full_name cannot be blank."}), 400
+
+    email = str(_get_val(payload, "email", "mail", default=f"{cust_name.lower().replace(' ', '')}_{datetime.now().strftime('%M%S')}@example.com")).strip()
+    phone = str(_get_val(payload, "phone", "mobile", "contact", default="+91 98765 00000")).strip()
+    
+    severity = str(_get_val(payload, "severity", "risk_tier", "priority", default="HIGH")).upper().strip()
+    if severity not in ["LOW", "MEDIUM", "HIGH", "CRITICAL"]:
+        severity = "HIGH"
+    risk_tier = severity
+    
+    cust_code = f"CUST-{uuid.uuid4().hex[:6].upper()}"
+    acc_num = str(_get_val(payload, "account_number", "account_no", "accountnumber", "acc_num", default=f"ACT-{uuid.uuid4().hex[:6].upper()}")).strip()
+    acc_type = str(_get_val(payload, "account_type", "accounttype", default="SAVINGS")).upper().strip()
+    
+    raw_amount = _get_val(payload, "amount_involved", "amount", "amountinvolved", default="25000")
+    try:
+        amount = float(str(raw_amount).replace(",", "").replace("₹", "").strip())
+        if amount <= 0:
+            return jsonify({"success": False, "error": "amount_involved must be greater than zero."}), 400
+    except ValueError:
+        return jsonify({"success": False, "error": f"Invalid numerical amount_involved: '{raw_amount}'"}), 400
+
+    incident_type = str(_get_val(payload, "incident_type", "incidenttype", "fraud_type", default="Fake QR Code Scam")).strip()
+    channel = str(_get_val(payload, "reported_channel", "channel", default="Customer Help Desk")).strip()
+    desc = str(_get_val(payload, "description", "desc", "details", default="Customer submitted fraud report.")).strip()
+    suspect = str(_get_val(payload, "suspect_entity", "suspect", "merchant", default="Unknown Merchant UPI")).strip()
+    flagged_ip = str(_get_val(payload, "flagged_ip_or_location", "location", "ip_address", default="Web Client Terminal")).strip()
+    ticket_num = f"FRD-2026-{uuid.uuid4().hex[:8].upper()}"
 
     conn = get_db_connection()
     conn.autocommit = True
     cursor = conn.cursor()
     try:
-        # Extract fields flexibly
-        cust_name = _get_val(payload, "full_name", "customer_name", "fullname", "name", "cust_name", default="Ramesh Kumar")
-        email = _get_val(payload, "email", "mail", default=f"{str(cust_name).lower().replace(' ', '')}_{datetime.now().strftime('%M%S')}@example.com")
-        phone = str(_get_val(payload, "phone", "mobile", "contact", default="+91 98765 00000"))
-        severity = str(_get_val(payload, "severity", "risk_tier", "priority", default="HIGH")).upper()
-        if severity not in ["LOW", "MEDIUM", "HIGH", "CRITICAL"]:
-            severity = "HIGH"
-        risk_tier = severity
-        
-        import uuid
-        cust_code = f"CUST-{uuid.uuid4().hex[:6].upper()}"
-        acc_num = str(_get_val(payload, "account_number", "account_no", "accountnumber", "acc_num", default=f"ACT-{uuid.uuid4().hex[:6].upper()}"))
-        acc_type = str(_get_val(payload, "account_type", "accounttype", default="SAVINGS")).upper()
-        
-        raw_amount = _get_val(payload, "amount_involved", "amount", "amountinvolved", default="25000")
-        try:
-            amount = float(str(raw_amount).replace(",", "").replace("₹", "").strip())
-        except Exception:
-            amount = 25000.00
-
-        incident_type = _get_val(payload, "incident_type", "incidenttype", "fraud_type", default="Fake QR Code Scam")
-        channel = _get_val(payload, "reported_channel", "channel", default="Customer Help Desk")
-        desc = _get_val(payload, "description", "desc", "details", default="Customer submitted fraud report through Process Studio RPA.")
-        suspect = _get_val(payload, "suspect_entity", "suspect", "merchant", default="Unknown Merchant UPI")
-        flagged_ip = _get_val(payload, "flagged_ip_or_location", "location", "ip_address", default="Web Client Terminal")
-        ticket_num = f"FRD-2026-{uuid.uuid4().hex[:8].upper()}"
-
         # 1. Check if customer already exists
         cursor.execute("""
             SELECT customer_id, full_name, risk_tier 
@@ -450,9 +641,11 @@ def api_create_fraud_ticket():
         cursor.execute("""
             INSERT INTO audit_logs (ticket_number, customer_name, actor, action, details, ip_address)
             VALUES (%s, %s, %s, %s, %s, %s);
-        """, (ticket_num, cust_name, "Process Studio RPA Workflow", "NEW_INCIDENT_REGISTERED", f"Created fraud ticket {ticket_num} for {cust_name} ({incident_type} - ₹{amount:,.2f})", request.remote_addr or "127.0.0.1"))
+        """, (ticket_num, cust_name, "Process Studio RPA Intake", "NEW_INCIDENT_REGISTERED", f"Created fraud ticket {ticket_num} for {cust_name} ({incident_type} - ₹{amount:,.2f})", request.remote_addr or "127.0.0.1"))
 
         conn.commit()
+        METRICS["total_fraud_tickets_created"] += 1
+
         return jsonify({
             "success": True, 
             "ticket_id": new_ticket_id, 
@@ -463,6 +656,7 @@ def api_create_fraud_ticket():
             "amount_involved": amount
         }), 201
     except Exception as ex:
+        logger.error(f"Error creating fraud ticket: {ex}", exc_info=True, extra={"request_id": getattr(g, "request_id", "SYS")})
         return jsonify({"success": False, "error": str(ex)}), 500
     finally:
         cursor.close()
@@ -476,6 +670,9 @@ def api_update_ticket(ticket_id):
     cursor = conn.cursor()
     try:
         status = payload.get("status")
+        if status and status not in ["UNDER_INVESTIGATION", "FROZEN", "RESOLVED", "CLOSED", "REJECTED"]:
+            return jsonify({"error": f"Invalid status: '{status}'"}), 400
+
         action_note = payload.get("action_taken", "")
 
         cursor.execute("""
@@ -518,6 +715,9 @@ def api_freeze_account():
     try:
         acc_num = payload.get("account_number")
         ticket_num = payload.get("ticket_number")
+
+        if not acc_num:
+            return jsonify({"error": "account_number is required"}), 400
 
         cursor.execute("UPDATE customer_accounts SET status = 'FROZEN' WHERE account_number = %s;", (acc_num,))
         if ticket_num:
@@ -650,7 +850,7 @@ def api_get_audit_logs():
             SELECT log_id, ticket_number, actor, action, details, ip_address, created_at
             FROM audit_logs
             ORDER BY log_id DESC
-            LIMIT 50;
+            LIMIT 100;
         """)
         logs = []
         for r in cursor.fetchall():
@@ -701,10 +901,19 @@ def api_get_db_status():
 
 @app.route('/api/execute-sql', methods=['POST'])
 def api_execute_sql():
+    if not ENABLE_SQL_CONSOLE:
+        return jsonify({"error": "SQL Console is disabled in this environment."}), 403
+
     payload = parse_incoming_payload()
     query = payload.get("query", "").strip()
     if not query:
         return jsonify({"error": "Empty SQL query"}), 400
+
+    # In production mode, guard against accidental DROP / TRUNCATE unless authorized
+    if APP_ENV == "production" and not check_api_auth():
+        upper_q = query.upper()
+        if any(keyword in upper_q for keyword in ["DROP DATABASE", "DROP TABLE", "TRUNCATE"]):
+            return jsonify({"error": "Destructive DDL statements are blocked in production mode."}), 403
 
     conn = get_db_connection()
     conn.autocommit = True
@@ -739,14 +948,15 @@ def api_execute_sql():
 # Production Server Entry Point
 # -------------------------------------------------------------
 def run_production_server():
-    print("=" * 70)
+    print("=" * 75)
     print("  APEX TRUST COMMERCIAL BANK - ENTERPRISE FRAUD PORTAL")
     print("  Production WSGI Server: Waitress")
+    print(f"  Environment: {APP_ENV.upper()}")
     print(f"  Host: http://{PORTAL_HOST}:{PORTAL_PORT}")
     print(f"  Worker Threads: {SERVER_THREADS} Concurrent Workers")
     print(f"  Connection Limit: {SERVER_CONNECTION_LIMIT} Sockets")
-    print(f"  Database: PostgreSQL 16 (bank_fraud_portal) on port {DB_PORT}")
-    print("=" * 70)
+    print(f"  Database: PostgreSQL ({DB_NAME}) on port {DB_PORT}")
+    print("=" * 75)
     
     waitress.serve(
         app,
